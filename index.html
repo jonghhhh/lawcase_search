@@ -121,6 +121,14 @@
         <label class="fld" for="maxRecords">최대 수집 건수 (max_records, 비우면 전체)</label>
         <input type="number" id="maxRecords" value="50" min="1" placeholder="전체" />
       </div>
+      <div>
+        <label class="fld" for="dateFrom">선고일자 시작 (비우면 제한 없음)</label>
+        <input type="text" id="dateFrom" placeholder="예) 2020.01.01" />
+      </div>
+      <div>
+        <label class="fld" for="dateTo">선고일자 끝 (비우면 제한 없음)</label>
+        <input type="text" id="dateTo" placeholder="예) 2024.12.31" />
+      </div>
     </div>
 
     <h3>필터 <span class="muted">(아무것도 선택 안 하면 ‘전체’)</span></h3>
@@ -226,6 +234,7 @@ function checkedValues(group){
   return [...document.querySelectorAll(`.fset[data-group="${group}"] input:checked`)].map(c => c.value);
 }
 function labelsToCode(labels, map){ return labels.map(l => map[l]).join("|"); }
+function normDate(s){ const d=(s||"").replace(/\D/g,""); return d.length===8 ? d : ""; }
 
 function proxied(url){
   const p = $("proxy").value.trim();
@@ -247,7 +256,8 @@ function buildPayload(pageNo, total){
     sort: "jis_jdcpc_instn_dvs_cd_s asc, $relevance desc, prnjdg_ymd_o desc, jdcpct_gr_cd_s asc",
     sortType:"정확도", searchRange:"", tpcJdcpctCsAlsYn:"", csNoLstCtt:"", csNmLstCtt:"",
     prvsRefcCtt:"", searchScope:"", jisJdcpcInstnDvsCd:"", jdcpctCdcsCd:"",
-    prnjdgYmdFrom:"", prnjdgYmdTo:"", grpJdcpctGrCd:"", cortNm:"", pageNo: pageNo,
+    prnjdgYmdFrom: normDate($("dateFrom").value), prnjdgYmdTo: normDate($("dateTo").value),
+    grpJdcpctGrCd:"", cortNm:"", pageNo: pageNo,
     jisJdcpcInstnDvsCdGrp: labelsToCode(checkedValues("court"),    COURT_CODES),     // 법원종류
     grpJdcpctGrCdGrp:      labelsToCode(checkedValues("grade"),    GRADE_CODES),     // 판례등급
     jdcpctCdcsCdGrp:       labelsToCode(checkedValues("casetype"), CASE_TYPE_CODES), // 사건종류

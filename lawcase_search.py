@@ -29,6 +29,11 @@ MAX_RECORDS = None       # 최대 수집 건수 (None = 전체)
 # 건수가 많으면 그만큼 느려지므로(레코드당 호출 2회) 필요에 맞게 조절.
 FETCH_FULL_TEXT = True
 
+# 선고일자 범위 (비우면 제한 없음). "YYYY.MM.DD" / "YYYY-MM-DD" / "YYYYMMDD" 모두 허용.
+# 서버에서 걸러주는 필터라 결과가 줄어들 뿐 느려지지 않는다. 기간 상한은 없다.
+DATE_FROM = ""   # 예) "2020.01.01"
+DATE_TO   = ""   # 예) "2024.12.31"
+
 # ── 필터 (원하는 항목만 리스트에 넣기 / 빈 리스트 = '전체') ──
 # 아래 한글 라벨 중 골라서 넣으면 된다. 여러 개 선택 가능.
 COURT_FILTER      = []   # 법원종류 : "대법원", "고등법원", "하급심"
@@ -92,6 +97,12 @@ def labels_to_code(labels, mapping):
     return "|".join(mapping[l] for l in labels)
 
 
+def norm_date(s):
+    """'2020.01.01' / '2020-01-01' / '20200101' → '20200101'. 비거나 형식 오류면 ''."""
+    digits = re.sub(r"\D", "", s or "")
+    return digits if len(digits) == 8 else ""
+
+
 def build_payload(page_no, total_count=""):
     return {
         "dma_searchParam": {
@@ -107,8 +118,8 @@ def build_payload(page_no, total_count=""):
             "searchScope": "",
             "jisJdcpcInstnDvsCd": "",
             "jdcpctCdcsCd": "",
-            "prnjdgYmdFrom": "",
-            "prnjdgYmdTo": "",
+            "prnjdgYmdFrom": norm_date(DATE_FROM),   # 선고일자 시작
+            "prnjdgYmdTo": norm_date(DATE_TO),        # 선고일자 끝
             "grpJdcpctGrCd": "",
             "cortNm": "",
             "pageNo": page_no,

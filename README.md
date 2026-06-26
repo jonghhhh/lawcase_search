@@ -40,6 +40,7 @@ API 분석으로 확인한 필터 값입니다. (여러 개 선택 시 OR 조건
 | 판례등급 | `grpJdcpctGrCdGrp` | 전원합의체 `01` · 간행판결 `02` · 미간행판결 `03` · 변경·폐기 `04` |
 | 사건종류 | `jdcpctCdcsCdGrp` | 민사 `01` · 형사 `02` · 가사 `03` · 특허 `04` · 조세 `05` · 행정 `06` |
 | 선고구분 | `adjdTypCdGrp` | 판결 `01` · 결정 `02` |
+| 선고일자 | `prnjdgYmdFrom` / `prnjdgYmdTo` | `YYYYMMDD` 범위 (기간 상한 없음) |
 
 > 참고: 포털 API에서 **변경**과 **폐기**는 같은 그룹 코드(`04`)로 묶여 내려오므로 ‘변경·폐기’로 함께 제공합니다.
 
@@ -57,6 +58,9 @@ pip install -r requirements.txt
 KEYWORD = "산업재해"        # 검색어
 MAX_RECORDS = None          # 최대 수집 건수 (None = 전체)
 FETCH_FULL_TEXT = True      # 요지 전문 포함 여부
+
+DATE_FROM = ""              # 선고일자 시작 (예: "2020.01.01", 비우면 제한 없음)
+DATE_TO   = ""              # 선고일자 끝   (예: "2024.12.31", 비우면 제한 없음)
 
 COURT_FILTER      = []      # "대법원", "고등법원", "하급심"
 GRADE_FILTER      = []      # "전원합의체", "간행판결", "미간행판결", "변경·폐기"
