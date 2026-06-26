@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>판례 검색 수집기 · 사법정보공개포털</title>
+<style>
+  :root{
+    --blue:#1a3c8c; --blue2:#2b56c6; --line:#e3e7ef; --bg:#f5f7fb;
+    --ink:#1d2330; --muted:#5b6577; --ok:#0a7b3e; --warn:#b4690e; --err:#c0392b;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Segoe UI","Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+    color:var(--ink);background:var(--bg);line-height:1.6;}
+  header{background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff;padding:28px 20px;}
+  header .wrap{max-width:1000px;margin:0 auto;}
+  header h1{margin:0 0 6px;font-size:24px;}
+  header p{margin:0;opacity:.92;font-size:14px;}
+  main{max-width:1000px;margin:0 auto;padding:24px 20px 60px;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:22px;margin-bottom:22px;
+    box-shadow:0 1px 3px rgba(20,30,60,.04);}
+  .card h2{margin:0 0 14px;font-size:18px;border-left:4px solid var(--blue2);padding-left:10px;}
+  .card h3{font-size:15px;margin:18px 0 6px;color:var(--blue);}
+  details summary{cursor:pointer;font-weight:600;color:var(--blue);}
+  .desc{font-size:14px;color:#2c3446;}
+  .desc ul{padding-left:20px;margin:6px 0;}
+  .desc code{background:#eef1f8;padding:1px 5px;border-radius:4px;font-size:13px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;}
+  label.fld{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:5px;}
+  input[type=text],input[type=number]{width:100%;padding:9px 11px;border:1px solid var(--line);
+    border-radius:8px;font-size:14px;}
+  .filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:6px;}
+  .fset{border:1px solid var(--line);border-radius:10px;padding:12px 14px;}
+  .fset strong{display:block;font-size:13px;color:var(--blue);margin-bottom:8px;}
+  .chk{display:inline-flex;align-items:center;gap:6px;margin:3px 10px 3px 0;font-size:14px;cursor:pointer;}
+  .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:8px;}
+  button{font-family:inherit;font-size:14px;font-weight:600;border:none;border-radius:8px;
+    padding:11px 20px;cursor:pointer;}
+  .btn-primary{background:var(--blue2);color:#fff;}
+  .btn-primary:disabled{background:#9fb0d8;cursor:not-allowed;}
+  .btn-ghost{background:#fff;color:var(--blue2);border:1px solid var(--blue2);}
+  .btn-ghost:disabled{color:#9fb0d8;border-color:#cdd6ea;cursor:not-allowed;}
+  #status{margin-top:14px;font-size:14px;min-height:22px;}
+  .bar{height:8px;background:#eef1f8;border-radius:6px;overflow:hidden;margin-top:8px;}
+  .bar > i{display:block;height:100%;width:0;background:var(--blue2);transition:width .2s;}
+  table{width:100%;border-collapse:collapse;margin-top:14px;font-size:13px;}
+  th,td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top;}
+  th{background:#f0f3fa;position:sticky;top:0;}
+  td.sum{max-width:380px;}
+  .tablewrap{max-height:460px;overflow:auto;border-radius:8px;border:1px solid var(--line);}
+  .muted{color:var(--muted);font-size:13px;}
+  .note{background:#fff8ec;border:1px solid #f0dcb4;border-radius:8px;padding:10px 12px;font-size:13px;color:#6b4e16;}
+  a{color:var(--blue2);}
+  footer{text-align:center;color:var(--muted);font-size:12px;padding:20px;}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>⚖️ 판례 검색 수집기</h1>
+    <p>대법원 <strong>사법정보공개포털 · 종합법률정보</strong>에서 판례를 검색해 요지 전문까지 모아 CSV로 내려받습니다.</p>
+  </div>
+</header>
+
+<main>
+  <!-- ─────────── 설명 ─────────── -->
+  <section class="card desc">
+    <h2>이 도구는 무엇인가요?</h2>
+    <p>
+      대한민국 법원이 운영하는
+      <a href="https://portal.scourt.go.kr/pgp/index.on?m=PGP1011M01&l=N&c=900" target="_blank" rel="noopener">사법정보공개포털 종합법률정보 「판례」</a>
+      검색 결과를 자동으로 수집하는 웹 도구입니다. 검색어와 필터(법원종류·판례등급·사건종류·선고구분)를 지정하면,
+      각 판례의 <strong>법원·사건번호·사건명·선고일자·판시사항·판결요지(전문)</strong>를 모아
+      엑셀에서 바로 열리는 CSV 파일로 저장합니다.
+    </p>
+
+    <h3>어떻게 데이터를 가져오나요?</h3>
+    <p>
+      처음에는 <code>Playwright</code>로 브라우저를 띄워 화면을 클릭·스크롤하며 긁어오는 방식을 썼습니다.
+      그런데 이 포털은 화면이 자바스크립트로 그려지는 <strong>SPA(WebSquare)</strong> 구조라
+      버튼·목록의 위치(셀렉터)가 자주 바뀌어 수집이 쉽게 깨졌습니다.
+    </p>
+    <p>
+      그래서 화면을 거치지 않고, 포털이 내부적으로 호출하는 <strong>검색 API를 직접 호출</strong>하도록 바꿨습니다.
+      훨씬 빠르고 안정적이며, 로그인도 필요 없습니다.
+    </p>
+    <ul>
+      <li><strong>목록 검색</strong> — <code>POST /pgp/pgp1011/selectJdcpctSrchRsltLst.on</code><br>
+        검색어·필터·페이지를 보내면 판례 목록과 총 건수를 돌려줍니다. (요지는 약 260자 미리보기로 잘려 옵니다)</li>
+      <li><strong>요지 전문</strong> — <code>POST /pgp/pgp1011/selectJdcpctSumrInf.on</code><br>
+        판례 일련번호로 호출해 <strong>판시사항(코드 01)·판결요지(코드 02)</strong> 전문을 항목별로 받아 이어 붙입니다.
+        '요지 전문 포함'을 켜면 판례 1건당 이 호출을 추가로 합니다.</li>
+    </ul>
+
+    <h3>CORS 프록시가 필요한 이유</h3>
+    <p class="note">
+      브라우저는 보안 정책(CORS)상 다른 도메인(scourt.go.kr)의 API를 직접 부를 수 없습니다.
+      그래서 이 페이지는 공개 CORS 프록시(<code>proxy.cors.sh</code>)를 거쳐 요청을 전달합니다.
+      프록시가 막히거나 느릴 수 있으니, 그럴 때는 아래 ‘고급 설정’에서 다른 프록시 주소로 바꾸거나,
+      대량 수집은 저장소의 파이썬 스크립트 <code>lawcase_search.py</code>(프록시 불필요)를 사용하세요.
+    </p>
+
+    <h3>필터 코드 (포털 API 분석으로 확인)</h3>
+    <ul>
+      <li><strong>법원종류</strong> 대법원·고등법원·하급심</li>
+      <li><strong>판례등급</strong> 전원합의체·간행판결·미간행판결·변경·폐기 (API에서 ‘변경’과 ‘폐기’는 같은 그룹으로 묶여 ‘변경·폐기’로 제공)</li>
+      <li><strong>사건종류</strong> 민사·형사·가사·특허·조세·행정</li>
+      <li><strong>선고구분</strong> 판결·결정</li>
+    </ul>
+  </section>
+
+  <!-- ─────────── 검색 조건 ─────────── -->
+  <section class="card">
+    <h2>검색 조건</h2>
+    <div class="grid">
+      <div>
+        <label class="fld" for="keyword">검색어 (keyword)</label>
+        <input type="text" id="keyword" value="산업재해" placeholder="예) 산업재해, 임금 체불" />
+      </div>
+      <div>
+        <label class="fld" for="maxRecords">최대 수집 건수 (max_records, 비우면 전체)</label>
+        <input type="number" id="maxRecords" value="50" min="1" placeholder="전체" />
+      </div>
+    </div>
+
+    <h3>필터 <span class="muted">(아무것도 선택 안 하면 ‘전체’)</span></h3>
+    <div class="filters">
+      <div class="fset" data-group="court">
+        <strong>법원종류</strong>
+        <label class="chk"><input type="checkbox" value="대법원">대법원</label>
+        <label class="chk"><input type="checkbox" value="고등법원">고등법원</label>
+        <label class="chk"><input type="checkbox" value="하급심">하급심</label>
+      </div>
+      <div class="fset" data-group="grade">
+        <strong>판례등급</strong>
+        <label class="chk"><input type="checkbox" value="전원합의체">전원합의체</label>
+        <label class="chk"><input type="checkbox" value="간행판결">간행판결</label>
+        <label class="chk"><input type="checkbox" value="미간행판결">미간행판결</label>
+        <label class="chk"><input type="checkbox" value="변경·폐기">변경·폐기</label>
+      </div>
+      <div class="fset" data-group="casetype">
+        <strong>사건종류</strong>
+        <label class="chk"><input type="checkbox" value="민사">민사</label>
+        <label class="chk"><input type="checkbox" value="형사">형사</label>
+        <label class="chk"><input type="checkbox" value="가사">가사</label>
+        <label class="chk"><input type="checkbox" value="특허">특허</label>
+        <label class="chk"><input type="checkbox" value="조세">조세</label>
+        <label class="chk"><input type="checkbox" value="행정">행정</label>
+      </div>
+      <div class="fset" data-group="decision">
+        <strong>선고구분</strong>
+        <label class="chk"><input type="checkbox" value="판결">판결</label>
+        <label class="chk"><input type="checkbox" value="결정">결정</label>
+      </div>
+    </div>
+
+    <div class="row">
+      <label class="chk"><input type="checkbox" id="fullText" checked>요지 전문 포함 <span class="muted">(건당 추가 요청 — 느려질 수 있음)</span></label>
+    </div>
+
+    <details style="margin-top:10px;">
+      <summary>고급 설정</summary>
+      <div style="margin-top:10px;">
+        <label class="fld" for="proxy">CORS 프록시 URL (앞에 붙입니다)</label>
+        <input type="text" id="proxy" value="https://proxy.cors.sh/" />
+        <p class="muted">예: <code>https://proxy.cors.sh/</code> · 비우면 프록시 없이(같은 도메인일 때만) 직접 호출합니다.</p>
+      </div>
+    </details>
+
+    <div class="row" style="margin-top:16px;">
+      <button class="btn-primary" id="runBtn">🔍 검색 실행</button>
+      <button class="btn-ghost" id="csvBtn" disabled>⬇️ CSV 다운로드</button>
+      <button class="btn-ghost" id="stopBtn" disabled>⏹ 중지</button>
+    </div>
+
+    <div id="status"></div>
+    <div class="bar"><i id="progBar"></i></div>
+  </section>
+
+  <!-- ─────────── 결과 미리보기 ─────────── -->
+  <section class="card" id="resultCard" style="display:none;">
+    <h2>결과 미리보기 <span class="muted" id="resultCount"></span></h2>
+    <div class="tablewrap"><table id="resultTable"></table></div>
+  </section>
+</main>
+
+<footer>
+  사법정보공개포털 종합법률정보 판례 데이터 · 공공저작물.
+  본 도구는 비상업적 연구·학습 목적의 보조 도구이며, 정확한 원문은 반드시 포털에서 확인하세요.
+</footer>
+
+<script>
+// ───────────────────────── 설정/상수 ─────────────────────────
+const API_URL    = "https://portal.scourt.go.kr/pgp/pgp1011/selectJdcpctSrchRsltLst.on";
+const DETAIL_URL = "https://portal.scourt.go.kr/pgp/pgp1011/selectJdcpctSumrInf.on";
+const PAGE_SIZE  = 100;
+const CTXT_HOLDING = "01";  // 판시사항
+const CTXT_SUMMARY = "02";  // 판결요지
+const DEFAULT_JDCPCT_GR_CD = "111|112|130|141|180|182|232|235";
+
+const COURT_CODES     = {"대법원":"01","고등법원":"03","하급심":"04"};
+const GRADE_CODES     = {"전원합의체":"01","간행판결":"02","미간행판결":"03","변경·폐기":"04"};
+const CASE_TYPE_CODES = {"민사":"01","형사":"02","가사":"03","특허":"04","조세":"05","행정":"06"};
+const DECISION_CODES  = {"판결":"01","결정":"02"};
+
+const COLUMNS = ["번호","법원","사건번호","사건명","선고일자","선고구분","판례등급","공보","판시사항","요지전체","일련번호","검색링크"];
+
+let collected = [];      // 수집 결과
+let aborted = false;
+let keywordUsed = "";
+
+// ───────────────────────── 유틸 ─────────────────────────
+const $ = (id) => document.getElementById(id);
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+function clean(text){
+  if(!text) return "";
+  text = String(text).replace(/<[^>]+>/g, "").replace(/ /g, " ");
+  return text.split("\n").map(s => s.trim()).filter(s => s !== "").join("\n").trim();
+}
+function fmtDate(s){
+  s = (s||"").trim();
+  return (/^\d{8}$/.test(s)) ? `${s.slice(0,4)}.${s.slice(4,6)}.${s.slice(6,8)}` : s;
+}
+function checkedValues(group){
+  return [...document.querySelectorAll(`.fset[data-group="${group}"] input:checked`)].map(c => c.value);
+}
+function labelsToCode(labels, map){ return labels.map(l => map[l]).join("|"); }
+
+function proxied(url){
+  const p = $("proxy").value.trim();
+  return p ? (p + url) : url;
+}
+async function postJSON(url, payload){
+  const r = await fetch(proxied(url), {
+    method:"POST",
+    headers:{"Content-Type":"application/json;charset=UTF-8"},
+    body: JSON.stringify(payload)
+  });
+  if(!r.ok) throw new Error("HTTP " + r.status);
+  return r.json();
+}
+
+function buildPayload(pageNo, total){
+  return { dma_searchParam: {
+    srchwd: keywordUsed,
+    sort: "jis_jdcpc_instn_dvs_cd_s asc, $relevance desc, prnjdg_ymd_o desc, jdcpct_gr_cd_s asc",
+    sortType:"정확도", searchRange:"", tpcJdcpctCsAlsYn:"", csNoLstCtt:"", csNmLstCtt:"",
+    prvsRefcCtt:"", searchScope:"", jisJdcpcInstnDvsCd:"", jdcpctCdcsCd:"",
+    prnjdgYmdFrom:"", prnjdgYmdTo:"", grpJdcpctGrCd:"", cortNm:"", pageNo: pageNo,
+    jisJdcpcInstnDvsCdGrp: labelsToCode(checkedValues("court"),    COURT_CODES),     // 법원종류
+    grpJdcpctGrCdGrp:      labelsToCode(checkedValues("grade"),    GRADE_CODES),     // 판례등급
+    jdcpctCdcsCdGrp:       labelsToCode(checkedValues("casetype"), CASE_TYPE_CODES), // 사건종류
+    adjdTypCdGrp:          labelsToCode(checkedValues("decision"), DECISION_CODES),  // 선고구분
+    pageSize: String(PAGE_SIZE), reSrchFlag:"", befSrchwd: keywordUsed, preSrchConditions:"",
+    initYn:"N", totalCount: String(total||""), jdcpctGrCd: DEFAULT_JDCPCT_GR_CD,
+    category:"jdcpct", isKwdSearch:"N"
+  }};
+}
+
+async function fetchFullText(srno, ctxt){
+  if(!srno) return "";
+  const j = await postJSON(DETAIL_URL, { dma_searchParam:{ jisCntntsSrno: Number(srno), jdcpctCtxtDvsCd: ctxt }});
+  const segs = (j.data && j.data.dlt_sumrInf) || [];
+  return segs.map(s => clean(s.jdcpctSumrCtt)).join("\n").trim();
+}
+
+function parseItem(it, idx){
+  const srno = it.jisCntntsSrno || "";
+  const caseNo = clean(it.csNoLstCtt);
+  return {
+    "번호": idx,
+    "법원": it.cortNm || "",
+    "사건번호": caseNo,
+    "사건명": clean(it.csNmLstCtt),
+    "선고일자": fmtDate(it.prnjdgYmd),
+    "선고구분": it.adjdTypNm || "",
+    "판례등급": it.grpJdcpctGrNm || "",
+    "공보": clean(it.jdcpctPublcCtt),
+    "판시사항": clean(it.dcdcsCtt),       // 기본: 미리보기
+    "요지전체": clean(it.jdcpctSumrCtt),  // 기본: 미리보기
+    "일련번호": srno,
+    "검색링크": caseNo ? (API_BASE_SEARCH + encodeURIComponent(caseNo)) : ""
+  };
+}
+const API_BASE_SEARCH = "https://portal.scourt.go.kr/pgp/index.on?m=PGP1011M01&l=N&c=900&q=";
+
+// ───────────────────────── 상태 표시 ─────────────────────────
+function setStatus(msg, cls){
+  const el = $("status");
+  el.textContent = msg;
+  el.style.color = cls === "err" ? "var(--err)" : cls === "ok" ? "var(--ok)" : "var(--ink)";
+}
+function setProgress(p){ $("progBar").style.width = Math.max(0, Math.min(100, p)) + "%"; }
+
+// ───────────────────────── 메인 수집 ─────────────────────────
+async function run(){
+  keywordUsed = $("keyword").value.trim();
+  if(!keywordUsed){ setStatus("검색어를 입력하세요.", "err"); return; }
+
+  const maxRaw = $("maxRecords").value.trim();
+  const maxRecords = maxRaw === "" ? null : Math.max(1, parseInt(maxRaw, 10));
+  const withFull = $("fullText").checked;
+
+  collected = [];
+  aborted = false;
+  $("runBtn").disabled = true;
+  $("csvBtn").disabled = true;
+  $("stopBtn").disabled = false;
+  $("resultCard").style.display = "none";
+  setProgress(0);
+
+  try{
+    setStatus("검색 중…");
+    const first = await postJSON(API_URL, buildPayload(1));
+    const data = first.data || {};
+    const total = parseInt(data.totalCount || "0", 10);
+    if(total === 0){ setStatus("검색 결과가 없습니다. (검색어/필터 확인)", "err"); reset(); return; }
+
+    const limit = maxRecords === null ? total : Math.min(total, maxRecords);
+    const lastPage = Math.ceil(limit / PAGE_SIZE);
+    setStatus(`총 ${total.toLocaleString()}건 중 ${limit.toLocaleString()}건 수집 시작…`);
+
+    const rows = [];
+    for(let page = 1; page <= lastPage && !aborted; page++){
+      let items;
+      if(page === 1) items = data.dlt_jdcpctRslt || [];
+      else {
+        const j = await postJSON(API_URL, buildPayload(page, total));
+        items = (j.data && j.data.dlt_jdcpctRslt) || [];
+        await sleep(150);
+      }
+      if(!items.length) break;
+
+      for(const it of items){
+        if(aborted) break;
+        if(rows.length >= limit) break;
+        const rec = parseItem(it, rows.length + 1);
+
+        if(withFull){
+          try{
+            const fs = await fetchFullText(rec["일련번호"], CTXT_SUMMARY);
+            const fh = await fetchFullText(rec["일련번호"], CTXT_HOLDING);
+            if(fs.length > rec["요지전체"].length) rec["요지전체"] = fs;
+            if(fh.length > rec["판시사항"].length) rec["판시사항"] = fh;
+            await sleep(120);
+          }catch(e){ /* 전문 실패 시 미리보기 유지 */ }
+        }
+        rows.push(rec);
+        setProgress(rows.length / limit * 100);
+        setStatus(`수집 중… ${rows.length.toLocaleString()} / ${limit.toLocaleString()}건`);
+      }
+      if(rows.length >= limit) break;
+    }
+
+    collected = rows;
+    renderTable(rows);
+    setProgress(100);
+    setStatus(`${aborted ? "중지됨 · " : "완료 · "}${rows.length.toLocaleString()}건 수집. CSV로 내려받으세요.`, "ok");
+    $("csvBtn").disabled = rows.length === 0;
+  }catch(err){
+    setStatus("오류: " + err.message + " — 프록시가 막혔을 수 있습니다(고급 설정에서 변경).", "err");
+  }finally{
+    reset();
+  }
+}
+function reset(){ $("runBtn").disabled = false; $("stopBtn").disabled = true; }
+
+// ───────────────────────── 결과 표 ─────────────────────────
+function renderTable(rows){
+  const t = $("resultTable");
+  const head = "<tr>" + COLUMNS.map(c => `<th>${c}</th>`).join("") + "</tr>";
+  const body = rows.slice(0, 200).map(r => "<tr>" + COLUMNS.map(c => {
+    let v = (r[c] ?? "").toString();
+    if(c === "검색링크" && v) v = `<a href="${v}" target="_blank" rel="noopener">열기</a>`;
+    else v = v.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/\n/g,"<br>");
+    return `<td class="${c==='요지전체'||c==='판시사항'?'sum':''}">${v}</td>`;
+  }).join("") + "</tr>").join("");
+  t.innerHTML = head + body;
+  $("resultCount").textContent = `(${rows.length.toLocaleString()}건` + (rows.length > 200 ? ", 표는 200건까지 표시" : "") + ")";
+  $("resultCard").style.display = "block";
+}
+
+// ───────────────────────── CSV 다운로드 ─────────────────────────
+function toCSV(rows){
+  const esc = (v) => {
+    v = (v ?? "").toString();
+    return /[",\n]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v;
+  };
+  const lines = [COLUMNS.join(",")];
+  for(const r of rows) lines.push(COLUMNS.map(c => esc(r[c])).join(","));
+  return "﻿" + lines.join("\r\n");  // BOM → 엑셀 한글 깨짐 방지
+}
+function downloadCSV(){
+  if(!collected.length) return;
+  const blob = new Blob([toCSV(collected)], {type:"text/csv;charset=utf-8;"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const safe = keywordUsed.replace(/[\\/:*?"<>|]/g, "_");
+  a.href = url;
+  a.download = `판례_${safe}_${collected.length}건.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+// ───────────────────────── 이벤트 ─────────────────────────
+$("runBtn").addEventListener("click", run);
+$("csvBtn").addEventListener("click", downloadCSV);
+$("stopBtn").addEventListener("click", () => { aborted = true; setStatus("중지 중…"); });
+</script>
+</body>
+</html>

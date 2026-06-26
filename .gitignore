@@ -1,0 +1,17 @@
+# 수집 결과물
+*.csv
+*.xlsx
+
+# 파이썬
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# 환경/비밀
+.env
+*.Zone.Identifier
+
+# OS
+.DS_Store
+Thumbs.db
